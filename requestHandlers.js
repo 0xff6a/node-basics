@@ -2,35 +2,31 @@ var querystring = require('querystring'),
     fs          = require('fs'),
     formidable  = require('formidable');
 
-function start(req, res) {
-  var body;
+function start(response) {
+  var body = '<html>'+
+    '<head>'+
+    '<meta http-equiv="Content-Type" '+
+    'content="text/html; charset=UTF-8" />'+
+    '</head>'+
+    '<body>'+
+    '<form action="/upload" enctype="multipart/form-data" '+
+    'method="post">'+
+    '<input type="file" name="upload" multiple="multiple">'+
+    '<input type="submit" value="Upload file" />'+
+    '</form>'+
+    '</body>'+
+    '</html>';
 
-  console.log('Request handler start called');
-
-  body = 
-  '<html>' +
-  '<head>' +
-  '<meta http-equiv="Content-Type" content="text/html; ' +
-  'charset="UTF-8" />' +
-  '</head>' +
-  '<body>' +
-  '<form action="/upload" enctype="multipart/form_data" method="post">' + 
-  '<input type="file" name="upload" multiple="multiple">' +
-  '<input type="submit" value="Upload file" />' +
-  '</form>' +
-  '</body>' +
-  '</html>';
-
-  res.writeHead(200, {'Content-Type': 'text/html'});
-  res.write(body);
-  res.end()
+    response.writeHead(200, {'Content-Type': 'text/html'});
+    response.write(body);
+    response.end();
 }
 
-function upload(req, res) {
+function upload(response, request) {
   var form = new formidable.IncomingForm();
-  console.log('[+] Starting request parsing...');
+  console.log('[+] Parsing POST data');
 
-  form.parse(req, function(error, fields, files) {
+  form.parse(request, function(error, fields, files) {
     console.log('[+] Parsing complete');
 
     fs.rename(files.upload.path, '/tmp/test.png', function(err) {
@@ -40,27 +36,18 @@ function upload(req, res) {
       }
     });
 
-    res.writeHead(200, {'Content-Type': 'text/html'});
-    res.write('received image:<br/>');
-    res.write('<img src="/show" />');
-    res.end();
+    response.writeHead(200, {'Content-Type': 'text/html'});
+    response.write("received image:<br/>");
+    response.write("<img src='/show' />");
+    response.end();
   });
 }
 
-function show(req, res) {
-  fs.readFile('./tmp/test.png', 'binary', function(error, file) {
-    if(error) {
-      res.writeHead(500, { 'Content-Type': 'text/plain' });
-      res.write(error + "\n");
-      res.end();
-    } else {
-      res.writeHead(200, { 'Content-Type': 'image/png' });
-      res.write(file, 'binary');
-      res.end();
-    }
-  });
+function show(response) {
+  response.writeHead(200, {'Content-Type': 'image/png'});
+  fs.createReadStream('/tmp/test.png').pipe(response);
 }
 
-exports.start  = start;
-exports.upload = upload;
-exports.show   = show;
+exports.start   = start;
+exports.upload  = upload;
+exports.show    = show;
